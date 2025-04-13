@@ -4,6 +4,7 @@
 #include <psapi.h>
 #include "Helper.h"
 #include "PEB.h"
+#include "Process.h"
 #define MAX_NAME 256
 
 typedef enum _PROCESSINFOCLASS {
@@ -158,7 +159,6 @@ BOOL GetTokenUser(IN HANDLE hProcess) {
     DWORD dwMaxUserName = MAX_NAME;
     DWORD dwMaxDomainName = MAX_NAME;
     SID_NAME_USE SidUser = SidTypeUser;
-    //将SID转换为用户名和域名
     if (!LookupAccountSidW(NULL, hTokenUser->User.Sid, UserName, &dwMaxUserName, DomainName, &dwMaxDomainName, &SidUser))
     {
         PRINT("LookupAccountSidw failed!");
@@ -177,7 +177,7 @@ BOOL GetTokenUser(IN HANDLE hProcess) {
     return FALSE;
 }
 
-BOOL FindProcessPID(LPCWSTR processName, DWORD* pid, HANDLE* hProcess)
+BOOL FindProcessPID(LPCWSTR processName, DWORD* pid, HANDLE* hProcess, AppMode mode)
 {
     HANDLE hProcessSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     if (hProcessSnap == INVALID_HANDLE_VALUE)
@@ -209,7 +209,7 @@ BOOL FindProcessPID(LPCWSTR processName, DWORD* pid, HANDLE* hProcess)
                 WCHAR* commandLine{ 0 };
                 if (ReadPEBProcessParameters(hHandle, &peb, &commandLine) && commandLine != 0)
                 {
-                    if (processName == L"chrome.exe" || processName == L"msedge.exe" || processName == L"ToDesk.exe") {
+                    if (processName == L"chrome.exe" || (processName == L"msedge.exe" && mode != Pass) || processName == L"ToDesk.exe") {
                         if (wcsstr(commandLine, flags) != 0) {
                             PRINT("[+] Fund AppLication process: %d\n", pe32.th32ProcessID);
                             PRINT("    Process owner: ");
@@ -249,7 +249,7 @@ BOOL FindProcessPID(LPCWSTR processName, DWORD* pid, HANDLE* hProcess)
 }
 BOOL GetRemoteModuleBaseAddress(HANDLE hProcess, const wchar_t* moduleName, uintptr_t& baseAddress, DWORD* moduleSize) {
 
-    DWORD szModules = sizeof(HMODULE) * 1024; 
+    DWORD szModules = sizeof(HMODULE) * 1024;
     HMODULE* hModules = (HMODULE*)malloc(szModules);
     DWORD cbNeeded;
 

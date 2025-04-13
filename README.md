@@ -11,6 +11,9 @@ GhostWolf 是一个强大的内存数据提取工具，专门设计用于从浏�
   - 支持隐私模式下的 Cookie 提取
   - 直接从内存中读取数据，无需文件系统访问
 
+- **浏览器密码提取**
+  - 支持 Edge最新版本账户密码获取
+
 - **ToDesk 信息提取**
   - 支持读取 ToDesk 账户密码
   - 支持获取设备列表
@@ -43,6 +46,7 @@ GhostWolf 是一个强大的内存数据提取工具，专门设计用于从浏�
 ```
 浏览器相关：
     /edge       获取Edge浏览器的Cookie
+	      /pass   获取Edge浏览器保存的所有密码
     /chrome     获取Chrome浏览器的Cookie
     /firefox    获取Firefox浏览器的Cookie
 

